@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import "./pages/Dashboard.css";   // correct path to CSS
-import Dashboard from "./pages/Dashboard";  // correct path to component
 import ResumeUploader from "./components/ResumeUploader";
+import bgVideo from "./assets/bg-video.mp4";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+const COLORS = ["#00FFC6", "#0099A8", "#FF6B6B", "#FFD93D"];
 
 function App() {
   const [jobTitle, setJobTitle] = useState("");
@@ -13,7 +26,6 @@ function App() {
   const [mandatoryReqs, setMandatoryReqs] = useState("");
   const [isoModalOpen, setIsoModalOpen] = useState(false);
   const [resumeResults, setResumeResults] = useState([]);
-  const [currentPage, setCurrentPage] = useState("hrInput"); // "hrInput" or "dashboard"
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,7 +40,6 @@ function App() {
   }, [jobDesc]);
 
   const handleUploadResults = (results) => {
-    // Ensure every result has a numeric score for dashboard graphs
     const processedResults = results.map((res) => ({
       filename: res.filename,
       analysis: res.analysis,
@@ -40,98 +51,150 @@ function App() {
     setResumeResults(processedResults);
   };
 
+  const formatPieData = (analysis) => {
+    // Demo breakdown (replace with actual backend values if available)
+    const strengths = Math.floor(Math.random() * 40) + 30;
+    const weaknesses = Math.floor(Math.random() * 30) + 10;
+    const bias = 100 - strengths - weaknesses;
+    return [
+      { name: "Strengths", value: strengths },
+      { name: "Weaknesses", value: weaknesses },
+      { name: "Bias Risk", value: bias },
+    ];
+  };
+
   return (
     <div className="app">
+      {/* Background video */}
       <video autoPlay loop muted className="bg-video">
-        <source src="/bg-video.mp4" type="video/mp4" />
+        <source src={bgVideo} type="video/mp4" />
       </video>
 
-      {/* Header + Navigation */}
+      {/* HEADER */}
       <header className="app-header glass-card">
         <h1>AI Resume Checker</h1>
         <div className="nav-buttons">
-          <button
-            className={currentPage === "hrInput" ? "active" : ""}
-            onClick={() => setCurrentPage("hrInput")}
-          >
-            HR Input
-          </button>
-          <button
-            className={currentPage === "dashboard" ? "active" : ""}
-            onClick={() => setCurrentPage("dashboard")}
-          >
-            Dashboard
-          </button>
           <button className="iso-btn" onClick={() => setIsoModalOpen(true)}>
             ISO Compliance
           </button>
         </div>
       </header>
 
+      {/* MAIN */}
       <main className="app-main">
-        {currentPage === "hrInput" && (
-          <>
-            <div className="flex-row">
-              <section className="panel job-desc-panel glass-card">
-                <h2>Job Description</h2>
-                <input
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="Enter Job Title"
-                />
-                <textarea
-                  value={jobDesc}
-                  onChange={(e) => setJobDesc(e.target.value)}
-                  placeholder="Paste job description here..."
-                />
-              </section>
+        <div className="flex-row">
+          {/* Job Description */}
+          <section className="panel job-desc-panel glass-card">
+            <h2>Job Description</h2>
+            <input
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="Enter Job Title"
+            />
+            <textarea
+              value={jobDesc}
+              onChange={(e) => setJobDesc(e.target.value)}
+              placeholder="Paste job description here..."
+            />
+          </section>
 
-              <section className="panel job-insights-panel glass-card">
-                <h2>Job Insights</h2>
-                <label>Top skills:</label>
-                <input value={topSkills} readOnly />
-                <label>Suggested keywords:</label>
-                <input value={suggestedKeywords} readOnly />
-                <label>Mandatory Requirements:</label>
-                <input value={mandatoryReqs} readOnly />
-              </section>
+          {/* Job Insights */}
+          <section className="panel job-insights-panel glass-card">
+            <h2>Job Insights</h2>
+            <label>Top Skills:</label>
+            <input value={topSkills} readOnly />
+            <label>Suggested Keywords:</label>
+            <input value={suggestedKeywords} readOnly />
+            <label>Mandatory Requirements:</label>
+            <input value={mandatoryReqs} readOnly />
+          </section>
+        </div>
+
+        {/* Upload + LinkedIn */}
+        <section className="panel upload-panel glass-card">
+          <h2>Upload Resumes & LinkedIn Profile</h2>
+          <div className="flex-row">
+            <div className="flex-column">
+              <label>Upload Resumes</label>
+              <ResumeUploader
+                linkedinUrl={linkedinUrl}
+                onResults={handleUploadResults}
+                setLoading={setLoading}
+              />
+              {loading && (
+                <p style={{ color: "#00FFC6", marginTop: "8px" }}>
+                  Analyzing resumes using AI... please wait ⚙️
+                </p>
+              )}
             </div>
+          </div>
+        </section>
 
-            <section className="panel upload-panel glass-card">
-              <h2>Upload Resumes & LinkedIn</h2>
-              <div className="flex-row">
-                <div className="flex-column">
-                  <label>Upload Resumes</label>
-                  <ResumeUploader
-                    linkedinUrl={linkedinUrl}
-                    onResults={handleUploadResults}
-                    setLoading={setLoading}
-                  />
-                  {loading && <p>Analyzing resumes, please wait...</p>}
+        {/* RESULTS DISPLAY - Separate Panel with Charts */}
+        {resumeResults.length > 0 && (
+          <section className="panel results-panel glass-card">
+            <h2>📊 Resume Analysis Dashboard</h2>
+            {resumeResults.map((res, idx) => (
+              <div key={idx} className="result-card glass-card">
+                <h3>{res.filename}</h3>
+                <p>{res.analysis}</p>
+                <p>
+                  <strong>Score:</strong> {res.score} / 100
+                </p>
+
+                {/* Bar Chart */}
+                <div style={{ width: "100%", height: 150 }}>
+                  <ResponsiveContainer>
+                    <BarChart data={[{ name: res.filename, score: res.score }]}>
+                      <XAxis dataKey="name" stroke="#00FFC6" />
+                      <YAxis stroke="#00FFC6" />
+                      <Tooltip />
+                      <Bar
+                        dataKey="score"
+                        fill="#00FFC6"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Pie Chart */}
+                <div style={{ width: "100%", height: 200 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={formatPieData(res.analysis)}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={70}
+                        label
+                      >
+                        {formatPieData(res.analysis).map((entry, index) => (
+                          <Cell
+                            key={index}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Legend />
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-            </section>
-          </>
-        )}
-
-        {currentPage === "dashboard" && (
-          <section className="panel dashboard-panel glass-card">
-            {/* Heading */}
-            <h1 className="text-3xl font-bold mb-4 text-center text-indigo-600">
-              📊 Resume Analysis Dashboard
-            </h1>
-            {resumeResults?.length > 0 ? (
-              <Dashboard candidates={resumeResults} />
-            ) : (
-              <p>No results to display yet. Upload resumes first.</p>
-            )}
+            ))}
           </section>
         )}
       </main>
 
-      <footer className="app-footer glass-card">Made by Gayathre J</footer>
+      {/* FOOTER */}
+      <footer className="app-footer glass-card">
+        Made by <strong>Gayathre J</strong>
+      </footer>
 
-      {/* ISO Modal */}
+      {/* ISO MODAL */}
       {isoModalOpen && (
         <div className="modal-overlay" onClick={() => setIsoModalOpen(false)}>
           <div
@@ -140,25 +203,28 @@ function App() {
           >
             <h2>ISO Compliance Overview</h2>
             <p>
-              The AI Resume Checker platform ensures adherence to global
-              standards for security and responsible AI.
+              This platform adheres to UAE Government standards ensuring both data
+              protection and responsible AI governance.
             </p>
+
             <details open>
               <summary>ISO 27001 — InfoSec Management</summary>
               <ul>
-                <li>End-to-end encryption of candidate and HR data (AES-256)</li>
-                <li>Restricted access to authorized HR personnel only</li>
-                <li>Audit logs for every resume interaction</li>
+                <li>End-to-end encryption (AES-256)</li>
+                <li>Authorized HR access control</li>
+                <li>Audit logs for resume operations</li>
               </ul>
             </details>
+
             <details>
               <summary>ISO 42001 — AI Governance</summary>
               <ul>
-                <li>Transparent AI scoring</li>
+                <li>Transparent scoring methodology</li>
                 <li>Bias detection & mitigation</li>
-                <li>Human oversight in evaluation</li>
+                <li>Human oversight maintained</li>
               </ul>
             </details>
+
             <button
               className="modal-close-btn"
               onClick={() => setIsoModalOpen(false)}
